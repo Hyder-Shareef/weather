@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Premium glassmorphic weather dashboard powered by Open-Meteo">
+  <title>WEATHER - Premium Glassmorphism Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Ambient background glow elements -->
+  <div class="ambient-glow glow-top"></div>
+  <div class="ambient-glow glow-bottom"></div>
+
+  <div class="dashboard-wrapper">
+    <!-- Top Header & Search Bar -->
+    <header class="dashboard-header">
+      <div class="app-brand">
+        <span class="brand-title">WEATHER</span>
+      </div>
+
+      <div class="search-and-controls-capsule">
+        <div class="search-form-container">
+          <form id="search-form" class="search-form" novalidate autocomplete="off">
+            <div class="search-input-box">
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input 
+                type="text" 
+                id="city-input" 
+                class="city-input" 
+                placeholder="Search city (e.g. Hyderabad, London)..." 
+                spellcheck="false"
+                aria-label="Search city location"
+              >
+              <button type="button" id="clear-input-btn" class="clear-input-btn" aria-label="Clear input" hidden>
+                &times;
+              </button>
+            </div>
+            <button type="submit" id="search-btn" class="capsule-btn search-submit-btn" disabled>
+              <span class="btn-text">Get Weather</span>
+              <span class="btn-spinner" hidden></span>
+            </button>
+          </form>
+
+          <!-- Autocomplete / Disambiguation Dropdown -->
+          <div id="location-dropdown" class="location-dropdown" hidden>
+            <div class="dropdown-header">Select matching location:</div>
+            <ul id="location-results-list" class="location-results-list"></ul>
+          </div>
+        </div>
+
+        <div class="header-action-group">
+          <!-- My Location button -->
+          <button type="button" id="geo-location-btn" class="capsule-btn ghost-btn" title="Detect your current location">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+            </svg>
+            <span class="btn-text">My Location</span>
+          </button>
+
+          <!-- Unit switch pill -->
+          <div class="unit-toggle-pill" role="radiogroup" aria-label="Temperature unit selection">
+            <button type="button" class="unit-toggle-btn active" data-unit="c" aria-checked="true" role="radio">
+              °C · km/h
+            </button>
+            <button type="button" class="unit-toggle-btn" data-unit="f" aria-checked="false" role="radio">
+              °F · mph
+            </button>
+          </div>
+
+          <!-- Refresh button -->
+          <button type="button" id="refresh-btn" class="capsule-btn ghost-btn" title="Refresh weather data">
+            <svg class="btn-icon refresh-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span class="btn-text">Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Input Validation Alert Message -->
+      <div id="validation-message" class="validation-message" role="alert" aria-live="polite" hidden></div>
+    </header>
+
+    <!-- Global Alert / Network Error Container -->
+    <div id="error-banner" class="error-banner" role="alert" hidden>
+      <div class="error-content">
+        <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+        <span id="error-text" class="error-text"></span>
+      </div>
+      <button type="button" id="dismiss-error-btn" class="dismiss-error-btn">&times;</button>
+    </div>
+
+    <!-- Main Glassmorphism Dashboard Container -->
+    <main class="dashboard-main-card" id="dashboard-container">
+      
+      <!-- Card Sub-header: Location Meta & Engine Attribution -->
+      <div class="card-meta-bar">
+        <div class="meta-left">
+          <span class="badge-title">SELECTED LOCATION</span>
+        </div>
+        <div class="meta-right">
+          <span class="attribution">Open-Meteo Engine</span>
+          <span class="meta-separator">·</span>
+          <span id="last-updated-text" class="last-updated">Updating...</span>
+        </div>
+      </div>
+
+      <!-- Hero Current Weather Section -->
+      <section class="current-weather-hero" id="current-weather-hero">
+        <div class="hero-location-info">
+          <h1 id="city-name-display" class="city-name-display">Hyderabad</h1>
+          <p id="city-subtitle-display" class="city-subtitle-display">Telangana, India</p>
+        </div>
+
+        <div class="hero-temp-row">
+          <div class="hero-weather-icon-wrapper" id="hero-weather-icon">
+            <!-- Dynamic SVG Icon inserted via JS -->
+          </div>
+          <div class="hero-temp-value-wrapper">
+            <span id="hero-temp-value" class="hero-temp-value">--</span>
+            <span class="hero-temp-degree">°</span>
+          </div>
+        </div>
+
+        <div class="hero-condition-info">
+          <div id="hero-condition-text" class="hero-condition-text">Loading Weather...</div>
+          <div class="hero-range-row">
+            <span class="range-stat">H:<span id="hero-high-temp">--</span>°</span>
+            <span class="range-stat">L:<span id="hero-low-temp">--</span>°</span>
+            <span class="range-separator">·</span>
+            <span class="feels-stat">Feels like <span id="hero-feels-temp">--</span>°</span>
+          </div>
+          <div id="hero-condition-summary" class="hero-condition-summary">
+            Local time: <span id="hero-local-time">--</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive Temperature Graph & Hourly Module Panel -->
+      <section class="chart-and-timeline-panel">
+        
+        <!-- Graph Navigation & Filter Bar -->
+        <div class="panel-header-bar">
+          <!-- Metric Tabs -->
+          <div class="metric-tabs-list" role="tablist">
+            <button type="button" class="metric-tab active" data-metric="temperature" role="tab" aria-selected="true">
+              Temperature Curve
+            </button>
+            <button type="button" class="metric-tab" data-metric="rain" role="tab" aria-selected="false">
+              Rain Likelihood
+            </button>
+            <button type="button" class="metric-tab" data-metric="wind" role="tab" aria-selected="false">
+              Wind Speed
+            </button>
+            <button type="button" class="metric-tab" data-metric="humidity" role="tab" aria-selected="false">
+              Humidity
+            </button>
+          </div>
+
+          <!-- Time Window Filters -->
+          <div class="filter-controls-group">
+            <div class="time-filter-pill" role="group" aria-label="Time window filter">
+              <button type="button" class="filter-btn active" data-filter="all">All 48 Hours</button>
+              <button type="button" class="filter-btn" data-filter="past">Previous 24h (-24h to -1h)</button>
+              <button type="button" class="filter-btn" data-filter="next">Future 24h (+1h to +24h)</button>
+            </div>
+            
+            <div class="quick-filter-actions">
+              <button type="button" id="quick-filter-past" class="mini-filter-btn">Filter Past 24h</button>
+              <button type="button" id="quick-filter-next" class="mini-filter-btn">Filter Next 24h</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graph Sub-Title & Now-Shift Indicator -->
+        <div class="chart-title-row">
+          <div class="chart-title-left">
+            <span id="chart-section-title" class="chart-section-title">TEMPERATURE CURVE (PAST 24H & NEXT 24H)</span>
+            <div class="chart-stat-line">
+              <span id="chart-hero-stat" class="chart-hero-stat">--°C Now</span>
+              <span id="chart-shift-stat" class="chart-shift-stat">-- forecast shift vs previous 24h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SVG Interactive Graph Area -->
+        <div class="chart-container" id="chart-container">
+          <svg id="weather-chart-svg" class="weather-chart-svg" preserveAspectRatio="none">
+            <defs>
+              <!-- Gradient for Area fill -->
+              <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#facc15" stop-opacity="0.32" id="grad-stop-1" />
+                <stop offset="100%" stop-color="#facc15" stop-opacity="0.0" id="grad-stop-2" />
+              </linearGradient>
+            </defs>
+            <g id="chart-grid-layer"></g>
+            <g id="chart-area-layer"></g>
+            <g id="chart-curve-layer"></g>
+            <g id="chart-now-marker-layer"></g>
+            <g id="chart-hover-marker-layer"></g>
+            <g id="chart-axis-labels-layer"></g>
+          </svg>
+
+          <!-- Interactive Hover Tooltip Box -->
+          <div id="chart-tooltip" class="chart-tooltip" hidden>
+            <div id="tooltip-offset-time" class="tooltip-offset-time">+0h (12 PM)</div>
+            <div id="tooltip-value" class="tooltip-value">--°</div>
+            <div id="tooltip-sub" class="tooltip-sub">Condition</div>
+          </div>
+        </div>
+
+        <!-- Hourly Timeline Section -->
+        <div class="hourly-timeline-section">
+          <div class="timeline-header-row">
+            <div class="timeline-title-group">
+              <span class="timeline-main-title">HOURLY TIMELINE</span>
+              <span class="timeline-bullet">·</span>
+              <span id="timeline-past-avg" class="timeline-avg-stat">Past 24h Avg --°</span>
+              <span class="timeline-bullet">·</span>
+              <span id="timeline-next-avg" class="timeline-avg-stat">Next 24h Avg --°</span>
+            </div>
+
+            <div class="timeline-controls-group">
+              <button type="button" id="timeline-prev-btn" class="nav-arrow-btn" aria-label="Scroll left">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <button type="button" id="timeline-jump-now-btn" class="jump-now-btn">Jump to Now</button>
+              <button type="button" id="timeline-next-btn" class="nav-arrow-btn" aria-label="Scroll right">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Horizontally Scrollable Timeline Track -->
+          <div class="timeline-scroll-container" id="timeline-scroll-container">
+            <div class="timeline-cards-track" id="timeline-cards-track">
+              <!-- Dynamically populated 49 hourly cards -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Weather Summary Cards Grid -->
+      <section class="summary-cards-section">
+        <!-- 4 Core Required Summary Cards -->
+        <div class="summary-grid-primary">
+          <!-- Card 1: GENERAL WEATHER -->
+          <article class="summary-glass-card">
+            <div class="card-top-label">GENERAL WEATHER</div>
+            <div id="summary-general-val" class="card-primary-val">--</div>
+            <div id="summary-general-sub" class="card-sub-info">Clouds --% · Vis -- km</div>
+          </article>
+
+          <!-- Card 2: TEMPERATURE -->
+          <article class="summary-glass-card">
+            <div class="card-top-label">TEMPERATURE</div>
+            <div id="summary-temp-val" class="card-primary-val">--°C</div>
+            <div id="summary-temp-sub" class="card-sub-info">Dew point --° · Humidity --%</div>
+          </article>
+
+          <!-- Card 3: LIKELIHOOD OF RAIN -->
+          <article class="summary-glass-card">
+            <div class="card-top-label">LIKELIHOOD OF RAIN</div>
+            <div id="summary-rain-val" class="card-primary-val">--%</div>
+            <div id="summary-rain-sub" class="card-sub-info">-- mm · 24h peak --%</div>
+          </article>
+
+          <!-- Card 4: WIND SPEED -->
+          <article class="summary-glass-card">
+            <div class="card-top-label">WIND SPEED</div>
+            <div id="summary-wind-val" class="card-primary-val">-- km/h</div>
+            <div id="summary-wind-sub" class="card-sub-info">-- (0°) · Gusts -- km/h</div>
+          </article>
+        </div>
+
+        <!-- Secondary Detail Cards Matching Design Reference (Air Quality, UV Index & Sun, Atmosphere) -->
+        <div class="summary-grid-secondary">
+          <!-- Card 5: AIR QUALITY -->
+          <article class="summary-glass-card card-aqi">
+            <div class="card-header-flex">
+              <span class="card-top-label">AIR QUALITY (US AQI)</span>
+            </div>
+            <div class="aqi-hero-row">
+              <div class="aqi-score-box">
+                <span id="aqi-num-val" class="card-primary-val">--</span>
+                <span id="aqi-label-val" class="aqi-category-badge">--</span>
+              </div>
+              <div id="aqi-desc-text" class="aqi-desc-text">
+                Air quality is being evaluated.
+              </div>
+            </div>
+            <!-- AQI Indicator Track -->
+            <div class="aqi-bar-wrapper">
+              <div class="aqi-color-bar">
+                <div id="aqi-needle-dot" class="spectrum-dot"></div>
+              </div>
+            </div>
+            <div class="aqi-pollutants-row">
+              <div class="pollutant-col">
+                <span class="pollutant-label">PM2.5</span>
+                <span id="pollutant-pm25" class="pollutant-val">--</span>
+                <span class="pollutant-unit">µg/m³</span>
+              </div>
+              <div class="pollutant-col">
+                <span class="pollutant-label">PM10</span>
+                <span id="pollutant-pm10" class="pollutant-val">--</span>
+                <span class="pollutant-unit">µg/m³</span>
+              </div>
+              <div class="pollutant-col">
+                <span class="pollutant-label">Ozone (O₃)</span>
+                <span id="pollutant-o3" class="pollutant-val">--</span>
+                <span class="pollutant-unit">µg/m³</span>
+              </div>
+              <div class="pollutant-col">
+                <span class="pollutant-label">NO₂</span>
+                <span id="pollutant-no2" class="pollutant-val">--</span>
+                <span class="pollutant-unit">µg/m³</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 6: UV INDEX & SUN -->
+          <article class="summary-glass-card card-uv">
+            <div class="card-top-label">UV INDEX & SUN</div>
+            <div class="uv-hero-row">
+              <span id="uv-num-val" class="card-primary-val">--</span>
+              <span id="uv-label-val" class="uv-badge">--</span>
+            </div>
+            <!-- UV Spectrum Bar -->
+            <div class="uv-bar-wrapper">
+              <div class="uv-color-bar">
+                <div id="uv-needle-dot" class="spectrum-dot"></div>
+              </div>
+            </div>
+            <div class="sun-times-row">
+              <div class="sun-time-box">
+                <span class="sun-label">SUNRISE</span>
+                <span id="sunrise-time-val" class="sun-time-val">--:-- AM</span>
+              </div>
+              <div class="sun-time-box">
+                <span class="sun-label">SUNSET</span>
+                <span id="sunset-time-val" class="sun-time-val">--:-- PM</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Card 7: ATMOSPHERE -->
+          <article class="summary-glass-card card-atmosphere">
+            <div class="card-top-label">ATMOSPHERE</div>
+            <div id="pressure-val" class="card-primary-val">-- hPa</div>
+            <div id="pressure-trend-sub" class="card-sub-info">Steady barometric trend</div>
+            <div class="atmosphere-footer-row">
+              <div class="atm-stat-box">
+                <span class="atm-label">HUMIDITY</span>
+                <span id="atm-humidity-val" class="atm-val">--%</span>
+              </div>
+              <div class="atm-stat-box">
+                <span class="atm-label">VISIBILITY</span>
+                <span id="atm-visibility-val" class="atm-val">-- km</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Skeleton Loading State Overlay -->
+      <div id="loading-overlay" class="loading-overlay" hidden>
+        <div class="loading-spinner-box">
+          <div class="pulse-ring"></div>
+          <div class="spinner-core"></div>
+        </div>
+        <p class="loading-text">Fetching weather from Open-Meteo...</p>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
